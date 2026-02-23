@@ -2,7 +2,9 @@
   "name": "simple-threads-monorepo",
   "private": true,
   "workspaces": [
-    "apps/*"
+    "apps/frontend",
+    "apps/backend/auth-service",
+    "apps/backend/post-service"
   ],
   "scripts": {
     "dev": "sh -c 'npm run dev:frontend & npm run dev:backend & wait'",
