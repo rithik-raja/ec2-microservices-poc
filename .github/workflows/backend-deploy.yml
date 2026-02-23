@@ -26,12 +26,14 @@ jobs:
         service:
           - name: auth-service
             workspace: auth-service
-            instance_id: ${{ secrets.AUTH_EC2_INSTANCE_ID }}
-            service_dir: ${{ secrets.AUTH_SERVICE_DIR }}
+            secret_keys:
+              instance_id: AUTH_EC2_INSTANCE_ID
+              service_dir: AUTH_SERVICE_DIR
           - name: post-service
             workspace: post-service
-            instance_id: ${{ secrets.POST_EC2_INSTANCE_ID }}
-            service_dir: ${{ secrets.POST_SERVICE_DIR }}
+            secret_keys:
+              instance_id: POST_EC2_INSTANCE_ID
+              service_dir: POST_SERVICE_DIR
 
     steps:
       - name: Checkout
@@ -71,8 +73,8 @@ jobs:
 
       - name: Deploy service through SSM
         env:
-          INSTANCE_ID: ${{ matrix.service.instance_id }}
-          SERVICE_DIR: ${{ matrix.service.service_dir }}
+          INSTANCE_ID: ${{ secrets[matrix.service.secret_keys.instance_id] }}
+          SERVICE_DIR: ${{ secrets[matrix.service.secret_keys.service_dir] }}
           PM2_PROCESS_NAME: ${{ matrix.service.name }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
