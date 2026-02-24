@@ -106,3 +106,9 @@ Push to main
             ├── npm ci --omit=dev
             └── pm2 reload (zero-downtime restart)
 ```
+
+---
+
+## Preview
+
+![preview](https://github.com/user-attachments/assets/e6efb5fe-4f4d-4c3c-b1b9-0d54329b1dbf)
