@@ -48,9 +48,13 @@ const dbPool = mysql.createPool({
   connectionLimit: 10,
 });
 
-app.use(
-  cors()
-);
+// app.use(
+//   cors({
+//     origin: process.env.FRONTEND_URL || true,
+//     credentials: true,
+//   })
+// );
+app.use(cors());
 app.use(express.json());
 
 function buildSecretHash(username: string) {
