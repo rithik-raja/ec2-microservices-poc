@@ -5,10 +5,12 @@ import express from "express";
 import mysql from "mysql2/promise";
 import { z } from "zod";
 import {
+  ConfirmSignUpCommand,
   CognitoIdentityProviderClient,
   GetUserCommand,
   GlobalSignOutCommand,
   InitiateAuthCommand,
+  ResendConfirmationCodeCommand,
   SignUpCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 
@@ -82,6 +84,15 @@ const signUpBodySchema = z.object({
 const loginBodySchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+});
+
+const confirmSignUpBodySchema = z.object({
+  email: z.string().email(),
+  code: z.string().regex(/^\d{6}$/, "Code must be a 6-digit OTP"),
+});
+
+const resendConfirmationCodeBodySchema = z.object({
+  email: z.string().email(),
 });
 
 const signOutBodySchema = z.object({
@@ -205,6 +216,65 @@ app.post("/auth/login", async (req, res) => {
   } catch (error: any) {
     return res.status(401).json({
       error: error?.name || "Login failed",
+      details: error?.message,
+    });
+  }
+});
+
+app.post("/auth/confirm-signup", async (req, res) => {
+  const parsed = confirmSignUpBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: "Invalid request body",
+      details: z.flattenError(parsed.error),
+    });
+  }
+  const { email, code } = parsed.data;
+
+  try {
+    const secretHash = buildSecretHash(email);
+    await cognitoClient.send(
+      new ConfirmSignUpCommand({
+        ClientId: process.env.COGNITO_CLIENT_ID,
+        Username: email,
+        ConfirmationCode: code,
+        ...(secretHash ? { SecretHash: secretHash } : {}),
+      })
+    );
+
+    return res.json({ message: "Email verified successfully." });
+  } catch (error: any) {
+    return res.status(400).json({
+      error: error?.name || "Confirm signup failed",
+      details: error?.message,
+    });
+  }
+});
+
+app.post("/auth/resend-confirmation-code", async (req, res) => {
+  const parsed = resendConfirmationCodeBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: "Invalid request body",
+      details: z.flattenError(parsed.error),
+    });
+  }
+  const { email } = parsed.data;
+
+  try {
+    const secretHash = buildSecretHash(email);
+    await cognitoClient.send(
+      new ResendConfirmationCodeCommand({
+        ClientId: process.env.COGNITO_CLIENT_ID,
+        Username: email,
+        ...(secretHash ? { SecretHash: secretHash } : {}),
+      })
+    );
+
+    return res.json({ message: "Confirmation code sent." });
+  } catch (error: any) {
+    return res.status(400).json({
+      error: error?.name || "Resend confirmation code failed",
       details: error?.message,
     });
   }

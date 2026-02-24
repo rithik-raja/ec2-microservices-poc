@@ -1,10 +1,12 @@
 import { getApiBaseUrl } from "@/lib/env";
 import type {
+  ConfirmSignUpRequest,
   CreateCommentRequest,
   CreatePostRequest,
   LoginRequest,
   LoginResponse,
   PostsResponse,
+  ResendConfirmationCodeRequest,
   SignOutRequest,
   SignUpRequest,
 } from "@/types/api";
@@ -74,6 +76,20 @@ export async function signUp(payload: SignUpRequest) {
 
 export async function login(payload: LoginRequest) {
   return request<LoginResponse>("/auth/login", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function confirmSignUp(payload: ConfirmSignUpRequest) {
+  return request<{ message: string }>("/auth/confirm-signup", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function resendConfirmationCode(payload: ResendConfirmationCodeRequest) {
+  return request<{ message: string }>("/auth/resend-confirmation-code", {
     method: "POST",
     body: payload,
   });

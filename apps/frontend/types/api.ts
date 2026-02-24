@@ -29,6 +29,15 @@ export type LoginRequest = {
   password: string;
 };
 
+export type ConfirmSignUpRequest = {
+  email: string;
+  code: string;
+};
+
+export type ResendConfirmationCodeRequest = {
+  email: string;
+};
+
 export type SignOutRequest = {
   accessToken: string;
 };

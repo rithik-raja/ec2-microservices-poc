@@ -8,7 +8,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
-import { ApiError, login, signOut, signUp } from "@/lib/api";
+import { ApiError, confirmSignUp, login, resendConfirmationCode, signOut, signUp } from "@/lib/api";
 import { userInitial } from "@/lib/format";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -54,13 +54,19 @@ const signupSchema = z.object({
     .max(64, "Password must be 64 characters or less."),
 });
 
+const verifySchema = z.object({
+  email: z.string().email("Enter a valid email address."),
+  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code."),
+});
+
 export function AuthPanel() {
   const { isAuthenticated, isReady, session, setSession, clearSession } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "verify">("login");
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
+    shouldUnregister: true,
     defaultValues: {
       email: "",
       password: "",
@@ -69,10 +75,20 @@ export function AuthPanel() {
 
   const signupForm = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
+    shouldUnregister: true,
     defaultValues: {
       email: "",
       username: "",
       password: "",
+    },
+  });
+
+  const verifyForm = useForm<z.infer<typeof verifySchema>>({
+    resolver: zodResolver(verifySchema),
+    shouldUnregister: true,
+    defaultValues: {
+      email: "",
+      code: "",
     },
   });
 
@@ -85,6 +101,15 @@ export function AuthPanel() {
       toast.success(`Welcome back, ${data.user.username}.`);
     },
     onError: (error) => {
+      if (error instanceof ApiError && error.message === "UserNotConfirmedException") {
+        const email = loginForm.getValues("email");
+        verifyForm.setValue("email", email);
+        verifyForm.setValue("code", "");
+        setMode("verify");
+        toast.error("Email not verified. Enter the 6-digit code sent to your email.");
+        return;
+      }
+
       const message = error instanceof ApiError ? error.message : "Login failed.";
       toast.error(message);
     },
@@ -94,12 +119,38 @@ export function AuthPanel() {
     mutationFn: signUp,
     onSuccess: (_, values) => {
       signupForm.reset();
-      loginForm.setValue("email", values.email);
-      setMode("login");
-      toast.success("Signup successful. If verification is enabled, verify your email before login.");
+      verifyForm.setValue("email", values.email);
+      verifyForm.setValue("code", "");
+      setMode("verify");
+      toast.success("Signup successful. Enter the 6-digit code sent to your email.");
     },
     onError: (error) => {
       const message = error instanceof ApiError ? error.message : "Signup failed.";
+      toast.error(message);
+    },
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: confirmSignUp,
+    onSuccess: (_, values) => {
+      loginForm.setValue("email", values.email);
+      verifyForm.setValue("code", "");
+      setMode("login");
+      toast.success("Email verified. You can log in now.");
+    },
+    onError: (error) => {
+      const message = error instanceof ApiError ? error.message : "Verification failed.";
+      toast.error(message);
+    },
+  });
+
+  const resendCodeMutation = useMutation({
+    mutationFn: resendConfirmationCode,
+    onSuccess: () => {
+      toast.success("A new verification code was sent.");
+    },
+    onError: (error) => {
+      const message = error instanceof ApiError ? error.message : "Failed to resend code.";
       toast.error(message);
     },
   });
@@ -157,6 +208,7 @@ export function AuthPanel() {
         setIsDialogOpen(open);
         if (!open) {
           setMode("login");
+          verifyForm.reset();
         }
       }}
     >
@@ -172,7 +224,7 @@ export function AuthPanel() {
               <DialogTitle>Log in</DialogTitle>
               <DialogDescription>Access your account to create posts and comments.</DialogDescription>
             </DialogHeader>
-            <Form {...loginForm}>
+            <Form key="login-form" {...loginForm}>
               <form className="space-y-4" onSubmit={loginForm.handleSubmit((values) => loginMutation.mutate(values))}>
                 <FormField
                   control={loginForm.control}
@@ -216,13 +268,13 @@ export function AuthPanel() {
               </form>
             </Form>
           </>
-        ) : (
+        ) : mode === "signup" ? (
           <>
             <DialogHeader>
               <DialogTitle>Sign up</DialogTitle>
               <DialogDescription>Create an account with email and username.</DialogDescription>
             </DialogHeader>
-            <Form {...signupForm}>
+            <Form key="signup-form" {...signupForm}>
               <form className="space-y-4" onSubmit={signupForm.handleSubmit((values) => signupMutation.mutate(values))}>
                 <FormField
                   control={signupForm.control}
@@ -268,6 +320,72 @@ export function AuthPanel() {
                 </Button>
                 <p className="text-center text-sm text-muted-foreground">
                   Already have an account?{" "}
+                  <button
+                    type="button"
+                    className="text-foreground underline underline-offset-4"
+                    onClick={() => setMode("login")}
+                  >
+                    Log in
+                  </button>
+                </p>
+              </form>
+            </Form>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Verify email</DialogTitle>
+              <DialogDescription>Enter the 6-digit code from your email to activate your account.</DialogDescription>
+            </DialogHeader>
+            <Form key="verify-form" {...verifyForm}>
+              <form className="space-y-4" onSubmit={verifyForm.handleSubmit((values) => verifyMutation.mutate(values))}>
+                <FormField
+                  control={verifyForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" autoComplete="email" placeholder="you@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={verifyForm.control}
+                  name="code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Verification code</FormLabel>
+                      <FormControl>
+                        <Input inputMode="numeric" maxLength={6} placeholder="123456" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button className="w-full" type="submit" disabled={verifyMutation.isPending}>
+                  {verifyMutation.isPending ? "Verifying..." : "Verify email"}
+                </Button>
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="outline"
+                  disabled={resendCodeMutation.isPending}
+                  onClick={async () => {
+                    const isEmailValid = await verifyForm.trigger("email");
+                    if (!isEmailValid) {
+                      return;
+                    }
+
+                    resendCodeMutation.mutate({ email: verifyForm.getValues("email") });
+                  }}
+                >
+                  {resendCodeMutation.isPending ? "Sending..." : "Resend code"}
+                </Button>
+                <p className="text-center text-sm text-muted-foreground">
+                  Back to{" "}
                   <button
                     type="button"
                     className="text-foreground underline underline-offset-4"
