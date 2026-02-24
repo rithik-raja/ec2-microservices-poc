@@ -202,7 +202,7 @@ app.get("/posts", async (req, res) => {
        FROM posts
        ORDER BY created_at DESC
        LIMIT ? OFFSET ?`,
-      [pageSize, offset]
+      [String(pageSize), String(offset)]
     );
     const posts = postRows as {
       id: number;
@@ -261,7 +261,7 @@ app.get("/posts", async (req, res) => {
   } catch (error: any) {
     return res.status(500).json({
       error: "Failed to fetch posts",
-      details: error?.stack,
+      details: error?.message,
     });
   }
 });
