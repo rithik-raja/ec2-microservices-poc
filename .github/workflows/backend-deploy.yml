@@ -79,6 +79,7 @@ jobs:
           PM2_PROCESS_NAME: ${{ matrix.service.name }}
         run: |
           read -r -d '' SCRIPT_CONTENT << 'EOF' || true
+          #!/bin/bash
           set -euo pipefail
           mkdir -p $SERVICE_DIR
           aws s3 cp s3://${S3_DEPLOY_BUCKET}/${ARTIFACT_KEY} /tmp/${PM2_PROCESS_NAME}.tar.gz
