@@ -183,8 +183,14 @@ app.post("/comments/create", requireAuth, async (req, res) => {
 });
 
 app.get("/posts", async (req, res) => {
-  const page = Math.max(1, Number(req.query.page || 1));
-  const pageSize = Math.min(50, Math.max(1, Number(req.query.pageSize || 10)));
+  const parsedPage = Number.parseInt(String(req.query.page ?? "1"), 10);
+  const parsedPageSize = Number.parseInt(String(req.query.pageSize ?? "10"), 10);
+
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const pageSize =
+    Number.isFinite(parsedPageSize) && parsedPageSize > 0
+      ? Math.min(50, parsedPageSize)
+      : 10;
   const offset = (page - 1) * pageSize;
 
   try {
@@ -217,12 +223,13 @@ app.get("/posts", async (req, res) => {
     }
 
     const postIds = posts.map((p) => p.id);
-    const [commentRows] = await dbPool.query(
+    const placeholders = postIds.map(() => "?").join(", ");
+    const [commentRows] = await dbPool.execute(
       `SELECT id, post_id, user_id, username, content, created_at
        FROM comments
-       WHERE post_id IN (?)
+       WHERE post_id IN (${placeholders})
        ORDER BY created_at ASC`,
-      [postIds]
+      postIds
     );
     const comments = commentRows as {
       id: number;
