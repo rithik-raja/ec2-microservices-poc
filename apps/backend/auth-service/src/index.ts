@@ -246,4 +246,4 @@ app.get("/health", async (_req, res) => {
 
 app.listen(port, () => {
   console.log(`auth-service listening on port ${port}`);
-}); // tmp10
+}); // tmp11
