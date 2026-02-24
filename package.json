@@ -7,17 +7,20 @@
     "apps/backend/post-service"
   ],
   "scripts": {
-    "dev": "sh -c 'npm run dev:frontend & npm run dev:backend & wait'",
+    "dev": "sh -c 'npm run dev:frontend & npm run dev:auth & npm run dev:posts & wait'",
     "dev:frontend": "npm run dev --workspace frontend",
-    "dev:backend": "npm run dev --workspace backend",
-    "build": "npm run build:frontend && npm run build:backend",
+    "dev:auth": "npm run dev --workspace auth-service",
+    "dev:posts": "npm run dev --workspace post-service",
+    "build": "npm run build:frontend && npm run build:auth && npm run build:posts",
     "build:frontend": "npm run build --workspace frontend",
-    "build:backend": "echo \"No backend build step configured\"",
-    "start": "sh -c 'npm run start:frontend & npm run start:backend & wait'",
+    "build:auth": "npm run build --workspace auth-service",
+    "build:posts": "npm run build --workspace post-service",
+    "start": "sh -c 'npm run start:frontend & npm run start:auth & npm run start:posts & wait'",
     "start:frontend": "npm run start --workspace frontend",
-    "start:backend": "npm run start --workspace backend",
+    "start:auth": "npm run start --workspace auth-service",
+    "start:posts": "npm run start --workspace post-service",
     "lint": "npm run lint --workspace frontend",
-    "test": "npm run test --workspace backend",
+    "test": "npm run test --workspace auth-service && npm run test --workspace post-service",
     "clean": "find . -name node_modules -type d -prune -exec rm -rf '{}' +"
   }
 }
