@@ -64,6 +64,11 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Set deployment secrets
+        run: |
+          echo "INSTANCE_ID=${{ secrets[matrix.service.secret_keys.instance_id] }}" >> $GITHUB_ENV
+          echo "SERVICE_DIR=${{ secrets[matrix.service.secret_keys.service_dir] }}" >> $GITHUB_ENV
+
       - name: Upload artifact to S3
         env:
           ARTIFACT_KEY: ${{ matrix.service.name }}/${{ github.sha }}-${{ github.run_id }}.tar.gz
@@ -73,8 +78,6 @@ jobs:
 
       - name: Deploy service through SSM
         env:
-          INSTANCE_ID: ${{ secrets[matrix.service.secret_keys.instance_id] }}
-          SERVICE_DIR: ${{ secrets[matrix.service.secret_keys.service_dir] }}
           PM2_PROCESS_NAME: ${{ matrix.service.name }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
