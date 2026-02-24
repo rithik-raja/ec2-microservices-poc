@@ -55,7 +55,6 @@ const signupSchema = z.object({
 });
 
 const verifySchema = z.object({
-  email: z.string().email("Enter a valid email address."),
   code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code."),
 });
 
@@ -63,6 +62,7 @@ export function AuthPanel() {
   const { isAuthenticated, isReady, session, setSession, clearSession } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [mode, setMode] = useState<"login" | "signup" | "verify">("login");
+  const [verificationEmail, setVerificationEmail] = useState("");
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -87,7 +87,6 @@ export function AuthPanel() {
     resolver: zodResolver(verifySchema),
     shouldUnregister: true,
     defaultValues: {
-      email: "",
       code: "",
     },
   });
@@ -103,7 +102,7 @@ export function AuthPanel() {
     onError: (error) => {
       if (error instanceof ApiError && error.message === "UserNotConfirmedException") {
         const email = loginForm.getValues("email");
-        verifyForm.setValue("email", email);
+        setVerificationEmail(email);
         verifyForm.setValue("code", "");
         setMode("verify");
         toast.error("Email not verified. Enter the 6-digit code sent to your email.");
@@ -119,7 +118,7 @@ export function AuthPanel() {
     mutationFn: signUp,
     onSuccess: (_, values) => {
       signupForm.reset();
-      verifyForm.setValue("email", values.email);
+      setVerificationEmail(values.email);
       verifyForm.setValue("code", "");
       setMode("verify");
       toast.success("Signup successful. Enter the 6-digit code sent to your email.");
@@ -131,9 +130,15 @@ export function AuthPanel() {
   });
 
   const verifyMutation = useMutation({
-    mutationFn: confirmSignUp,
-    onSuccess: (_, values) => {
-      loginForm.setValue("email", values.email);
+    mutationFn: ({ code }: z.infer<typeof verifySchema>) => {
+      if (!verificationEmail) {
+        throw new ApiError(400, "Missing verification email. Please sign up again.");
+      }
+
+      return confirmSignUp({ email: verificationEmail, code });
+    },
+    onSuccess: () => {
+      loginForm.setValue("email", verificationEmail);
       verifyForm.setValue("code", "");
       setMode("login");
       toast.success("Email verified. You can log in now.");
@@ -208,6 +213,7 @@ export function AuthPanel() {
         setIsDialogOpen(open);
         if (!open) {
           setMode("login");
+          setVerificationEmail("");
           verifyForm.reset();
         }
       }}
@@ -296,7 +302,7 @@ export function AuthPanel() {
                     <FormItem>
                       <FormLabel>Username</FormLabel>
                       <FormControl>
-                        <Input autoComplete="username" placeholder="rithik" {...field} />
+                        <Input autoComplete="username" placeholder="your.username" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -341,19 +347,6 @@ export function AuthPanel() {
               <form className="space-y-4" onSubmit={verifyForm.handleSubmit((values) => verifyMutation.mutate(values))}>
                 <FormField
                   control={verifyForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" autoComplete="email" placeholder="you@example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={verifyForm.control}
                   name="code"
                   render={({ field }) => (
                     <FormItem>
@@ -373,27 +366,17 @@ export function AuthPanel() {
                   type="button"
                   variant="outline"
                   disabled={resendCodeMutation.isPending}
-                  onClick={async () => {
-                    const isEmailValid = await verifyForm.trigger("email");
-                    if (!isEmailValid) {
+                  onClick={() => {
+                    if (!verificationEmail) {
+                      toast.error("Missing verification email. Please sign up again.");
                       return;
                     }
 
-                    resendCodeMutation.mutate({ email: verifyForm.getValues("email") });
+                    resendCodeMutation.mutate({ email: verificationEmail });
                   }}
                 >
                   {resendCodeMutation.isPending ? "Sending..." : "Resend code"}
                 </Button>
-                <p className="text-center text-sm text-muted-foreground">
-                  Back to{" "}
-                  <button
-                    type="button"
-                    className="text-foreground underline underline-offset-4"
-                    onClick={() => setMode("login")}
-                  >
-                    Log in
-                  </button>
-                </p>
               </form>
             </Form>
           </>
