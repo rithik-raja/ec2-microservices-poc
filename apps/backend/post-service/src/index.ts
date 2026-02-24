@@ -261,7 +261,7 @@ app.get("/posts", async (req, res) => {
   } catch (error: any) {
     return res.status(500).json({
       error: "Failed to fetch posts",
-      details: error?.message,
+      details: error?.stack,
     });
   }
 });
