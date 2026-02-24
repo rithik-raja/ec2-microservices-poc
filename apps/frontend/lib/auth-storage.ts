@@ -2,6 +2,8 @@ import type { LoginResponse } from "@/types/api";
 
 const STORAGE_KEY = "simple-threads-session";
 const SESSION_EVENT = "simple-threads-session-updated";
+let cachedRawSession: string | null = null;
+let cachedSession: Session | null = null;
 
 export type Session = Pick<
   LoginResponse,
@@ -15,16 +17,28 @@ export function getStoredSession(): Session | null {
 
   const raw = window.localStorage.getItem(STORAGE_KEY);
   if (!raw) {
+    cachedRawSession = null;
+    cachedSession = null;
     return null;
+  }
+
+  if (raw === cachedRawSession) {
+    return cachedSession;
   }
 
   try {
     const parsed = JSON.parse(raw) as Session;
     if (!parsed.accessToken || !parsed.user?.id) {
+      cachedRawSession = null;
+      cachedSession = null;
       return null;
     }
+    cachedRawSession = raw;
+    cachedSession = parsed;
     return parsed;
   } catch {
+    cachedRawSession = null;
+    cachedSession = null;
     return null;
   }
 }
@@ -42,7 +56,10 @@ export function storeSession(session: Session) {
     return;
   }
 
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  const raw = JSON.stringify(session);
+  cachedRawSession = raw;
+  cachedSession = session;
+  window.localStorage.setItem(STORAGE_KEY, raw);
   notifySessionUpdated();
 }
 
@@ -51,6 +68,8 @@ export function clearStoredSession() {
     return;
   }
 
+  cachedRawSession = null;
+  cachedSession = null;
   window.localStorage.removeItem(STORAGE_KEY);
   notifySessionUpdated();
 }

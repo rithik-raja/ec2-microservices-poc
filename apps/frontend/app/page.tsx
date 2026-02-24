@@ -13,7 +13,7 @@ export default function Home() {
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold tracking-tight">Simple Threads</h1>
           <p className="text-sm text-muted-foreground">
-            A clean text feed where posts and post-level comments stay focused.
+            A simple text feed where people share their thoughts.
           </p>
         </div>
         <AuthPanel />

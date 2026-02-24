@@ -194,7 +194,7 @@ export function AuthPanel() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuLabel className="truncate">{session.user.email}</DropdownMenuLabel>
+          <DropdownMenuLabel className="truncate text-muted-foreground">{session.user.email}</DropdownMenuLabel>
           <DropdownMenuItem
             onClick={() => signOutMutation.mutate({ accessToken: session.accessToken })}
             disabled={signOutMutation.isPending}

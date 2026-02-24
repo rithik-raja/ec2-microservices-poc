@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { MessageCircle } from "lucide-react";
 
+import { useAuth } from "@/components/providers/auth-provider";
 import { CommentForm } from "@/components/feed/comment-form";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -8,6 +10,9 @@ import { formatTimestamp, userInitial } from "@/lib/format";
 import type { PostRecord } from "@/types/api";
 
 export function PostCard({ post }: { post: PostRecord }) {
+  const [isCommentFormOpen, setIsCommentFormOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
+
   return (
     <Card>
       <CardHeader className="space-y-3">
@@ -24,16 +29,23 @@ export function PostCard({ post }: { post: PostRecord }) {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
+        <div className="mb-0">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:hover:text-muted-foreground"
+            disabled={!isAuthenticated}
+            onClick={() => setIsCommentFormOpen((current) => !current)}
+            aria-expanded={isCommentFormOpen}
+            aria-label="Toggle comment form"
+          >
             <MessageCircle className="h-3.5 w-3.5" />
             {post.comments.length} {post.comments.length === 1 ? "comment" : "comments"}
-          </span>
+          </button>
         </div>
 
-        <CommentForm postId={post.id} />
+        <CommentForm postId={post.id} isOpen={isCommentFormOpen} onOpenChange={setIsCommentFormOpen} />
 
-        {post.comments.length > 0 ? <Separator /> : null}
+        {post.comments.length > 0 ? <Separator className="mt-2" /> : null}
 
         <div className="space-y-3">
           {post.comments.map((comment) => (

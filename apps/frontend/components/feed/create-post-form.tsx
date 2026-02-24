@@ -57,10 +57,6 @@ export function CreatePostForm() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Create post</CardTitle>
-        <CardDescription>Share a short text post to the feed.</CardDescription>
-      </CardHeader>
       <CardContent>
         <Form {...form}>
           <form className="space-y-4" onSubmit={form.handleSubmit((values) => createPostMutation.mutate(values))}>
@@ -69,7 +65,7 @@ export function CreatePostForm() {
               name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Post</FormLabel>
+                  <FormLabel>Create Post</FormLabel>
                   <FormControl>
                     <Textarea className="min-h-24" maxLength={500} placeholder="What do you want to share?" {...field} />
                   </FormControl>

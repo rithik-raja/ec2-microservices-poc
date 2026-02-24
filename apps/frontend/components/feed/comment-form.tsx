@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -23,8 +22,15 @@ const createCommentSchema = z.object({
   content: z.string().trim().min(1, "Comment cannot be empty.").max(300, "Comment is too long."),
 });
 
-export function CommentForm({ postId }: { postId: number }) {
-  const [isOpen, setIsOpen] = useState(false);
+export function CommentForm({
+  postId,
+  isOpen,
+  onOpenChange,
+}: {
+  postId: number;
+  isOpen: boolean;
+  onOpenChange: (next: boolean) => void;
+}) {
   const { isAuthenticated, session } = useAuth();
   const queryClient = useQueryClient();
 
@@ -42,7 +48,7 @@ export function CommentForm({ postId }: { postId: number }) {
     },
     onSuccess: () => {
       form.reset();
-      setIsOpen(false);
+      onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       toast.success("Comment added.");
     },
@@ -57,47 +63,39 @@ export function CommentForm({ postId }: { postId: number }) {
   }
 
   return (
-    <div className="space-y-2">
-      {!isOpen ? (
-        <Button variant="ghost" size="sm" type="button" onClick={() => setIsOpen(true)}>
-          + Comment
-        </Button>
-      ) : null}
-
-      {isOpen ? (
-        <Form {...form}>
-          <form className="space-y-2" onSubmit={form.handleSubmit((values) => commentMutation.mutate(values))}>
-            <FormField
-              control={form.control}
-              name="content"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Textarea className="min-h-20" maxLength={300} placeholder="Write a comment..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setIsOpen(false);
-                  form.reset();
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" size="sm" disabled={commentMutation.isPending}>
-                {commentMutation.isPending ? "Adding..." : "Add comment"}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      ) : null}
-    </div>
+    isOpen ? (
+      <Form {...form}>
+        <form className="space-y-2 mb-0" onSubmit={form.handleSubmit((values) => commentMutation.mutate(values))}>
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Textarea className="min-h-20" maxLength={300} placeholder="Write a comment..." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                onOpenChange(false);
+                form.reset();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" disabled={commentMutation.isPending}>
+              {commentMutation.isPending ? "Adding..." : "Add comment"}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    ) : null
   );
 }
