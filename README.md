@@ -6,45 +6,7 @@ A full-stack social web application where users create text posts and respond vi
 
 ## Architecture Overview
 
-```mermaid
-flowchart TD
-    User(["User (Browser)"])
-    Vercel["Next.js Frontend"]
-    Namecheap["DNS CNAME → ALB"]
-    ACM["AWS Certificate Manager - SSL/TLS Certificate"]
-    GitHub["GitHub Actions - CI/CD Pipeline"]
-    S3["Amazon S3 - Deploy Artifacts"]
-    Cognito["Amazon Cognito User Pool"]
-
-    subgraph VPC ["AWS VPC"]
-        subgraph Public ["Public Subnets (2 AZs)"]
-            ALB["Application Load Balancer"]
-            NAT["NAT Gateway"]
-        end
-
-        subgraph Private ["Private Subnets (2 AZs)"]
-            Auth["EC2 — Auth Service - Express.js :3000 - PM2"]
-            Posts["EC2 — Posts Service - Express.js :3000 - PM2"]
-            RDS[("Amazon RDS Aurora - MySQL")]
-        end
-    end
-
-    User -- "HTTPS" --> Vercel
-    User -- "HTTPS :443" --> Namecheap
-    Namecheap --> ALB
-    ACM -. "SSL cert" .-> ALB
-    ALB -- "/auth/*" --> Auth
-    ALB -- "/api/*" --> Posts
-    Auth -- "TCP :3306" --> RDS
-    Posts -- "TCP :3306" --> RDS
-    Auth <--> Cognito
-    Posts -. "JWKS verify" .-> Cognito
-    Auth --> NAT --> Internet(["Internet"])
-    Posts --> NAT
-    GitHub --> S3
-    S3 -. "artifact on deploy" .-> Auth
-    S3 -. "artifact on deploy" .-> Posts
-```
+![mermaid](https://github.com/user-attachments/assets/c7a24f6e-4f9b-49b8-8050-94400788d3c8)
 
 ---
 
